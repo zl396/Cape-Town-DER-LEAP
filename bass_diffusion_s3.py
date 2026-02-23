@@ -17,6 +17,12 @@ Where:
     Y_t = cumulative adoption fraction at time t
     y_t = new adoption fraction in period t
 
+Calibration Data Source:
+    Historical adoption rates from Yoder (2025) dissertation Ch. 3, Table 3.
+    Uses Mask2Former deep learning model on aerial imagery to detect SHS installations.
+    This is ~3x more accurate than SSEG registration data (~2/3 of SHS are unregistered).
+    Postpaid (credit metering) → High-Income; Prepaid (token metering) → Middle-Income.
+
 Usage:
     python3 bass_diffusion_s3.py
 
@@ -24,6 +30,7 @@ Output:
     - s3_bass_diffusion_results.csv
     - s3_adoption_curves.png
     - s3_sensitivity_analysis.png
+    - s3_revenue_erosion.png (from revenue_erosion_s3.py)
     - Console output with calibration results
 """
 
@@ -55,7 +62,7 @@ except ImportError:
 # ============================================================================
 
 # Projection period
-BASE_YEAR = 2018
+BASE_YEAR = 2020       # Yoder aerial imagery data starts 2020
 CALIBRATION_END = 2023
 PROJECTION_START = 2024
 PROJECTION_END = 2050
@@ -80,37 +87,35 @@ TOTAL_SSEG_CAPACITY_MW = {2018: 19, 2019: 31, 2020: 50, 2021: 73, 2022: 99, 2023
 # ============================================================================
 # HISTORICAL ADOPTION DATA
 # ============================================================================
-# NOTE: These are ESTIMATED values. Replace with actual LEAP model data
-# when available. The user should check their LEAP model for exact values.
+# Source: Yoder (2025) dissertation Ch. 3, Table 3.
+# "Inequality in Resilience: Understanding Household Electricity Consumption
+#  During Load Shedding in Cape Town"
 #
-# Estimation method:
-# - High-income: Started at 2.46% in 2018 (General Household Survey).
-#   SSEG capacity grew from 19 to 121 MW (2018-2023). Assuming most early
-#   SSEG was high-income residential, adoption % grew proportionally to
-#   residential SSEG share. These are rough estimates to be replaced.
-# - Middle-income: 0.09% in 2018 (General Household Survey), slight growth.
-# - Low-income: 0% throughout.
+# SHS detected via Mask2Former deep learning on aerial imagery (2020-2023).
+# This captures ALL installations, not just registered ones (~2/3 unregistered).
+#
+# Mapping: Postpaid (credit metering) → High-Income (HI)
+#          Prepaid (token metering) → Middle-Income (MI)  [user decision]
+#          Low-Income → 0% (no data; to be refined with Biz's consumption data)
+#
+# Previous estimates (registration-based) for comparison:
+#   HI 2023: 8.0% (old) vs 8.6% (Yoder) — close
+#   MI 2023: 0.18% (old) vs 4.0% (Yoder) — 20x discrepancy!
 
 HISTORICAL_ADOPTION = {
     'high': {
-        2018: 0.0246,   # 2.46% from General Household Survey
-        2019: 0.0350,   # Estimated based on SSEG growth
-        2020: 0.0470,   # Estimated
-        2021: 0.0580,   # Estimated
-        2022: 0.0680,   # Estimated
-        2023: 0.0800,   # Estimated - REPLACE WITH LEAP MODEL VALUE
+        2020: 0.031,    # Yoder Table 3: Postpaid 3.1% (2,193 HH)
+        2021: 0.041,    # Postpaid 4.1% (2,799 HH)
+        2022: 0.055,    # Postpaid 5.5% (3,528 HH)
+        2023: 0.086,    # Postpaid 8.6% (5,127 HH)
     },
     'middle': {
-        2018: 0.0009,   # 0.09% from General Household Survey
-        2019: 0.0010,   # Estimated
-        2020: 0.0012,   # Estimated
-        2021: 0.0014,   # Estimated
-        2022: 0.0016,   # Estimated
-        2023: 0.0018,   # Estimated - REPLACE WITH LEAP MODEL VALUE
+        2020: 0.012,    # Yoder Table 3: Prepaid 1.2% (4,370 HH)
+        2021: 0.016,    # Prepaid 1.6% (5,941 HH)
+        2022: 0.024,    # Prepaid 2.4% (8,358 HH)
+        2023: 0.040,    # Prepaid 4.0% (14,617 HH)
     },
     'low': {
-        2018: 0.0,
-        2019: 0.0,
         2020: 0.0,
         2021: 0.0,
         2022: 0.0,
@@ -608,8 +613,8 @@ def main():
     # ---- Step 1: Calibrate high-income Bass parameters ----
     print(f"\n--- Step 1: Calibrating High-Income Bass Parameters ---")
     print(f"Calibration mode: {CALIBRATION_MODE}")
-    print("Using historical SHS adoption data (2018-2023)")
-    print("NOTE: Replace HISTORICAL_ADOPTION values with actual LEAP model data\n")
+    print("Using Yoder (2025) aerial imagery SHS adoption data (2020-2023)")
+    print("Source: Mask2Former detection on aerial imagery (~3x more accurate than registration)\n")
 
     p_hi, q_hi, r2_hi, rmse_hi = calibrate_bass(
         HISTORICAL_ADOPTION['high'],
