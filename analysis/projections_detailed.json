@@ -1,0 +1,402 @@
+{
+  "2024": {
+    "der_capacity_mw": 159,
+    "effective_capacity": {
+      "without_storage": {
+        "morning": 47.699999999999996,
+        "evening": 19.874999999999996,
+        "peak_combined": 31.799999999999997
+      },
+      "with_storage": {
+        "morning": 47.699999999999996,
+        "evening": 80.6925,
+        "peak_combined": 66.55285714285715
+      }
+    },
+    "household_resilience": {
+      "high": {
+        "total_households": 213742.99999999997,
+        "solar_households": 64122.89999999999,
+        "islanding_capable": 44886.02999999999,
+        "can_ride_stage4": 44886.02999999999,
+        "avg_battery_kWh": 10
+      },
+      "middle": {
+        "total_households": 213742.99999999997,
+        "solar_households": 53435.74999999999,
+        "islanding_capable": 21374.3,
+        "can_ride_stage4": 21374.3,
+        "avg_battery_kWh": 7
+      },
+      "low": {
+        "total_households": 213742.99999999997,
+        "solar_households": 32061.449999999993,
+        "islanding_capable": 3206.1449999999995,
+        "can_ride_stage4": 3206.1449999999995,
+        "avg_battery_kWh": 5
+      },
+      "summary": {
+        "total_households": 641228.9999999999,
+        "total_islanding_capable": 69466.47499999999,
+        "islanding_percentage": 10.833333333333334
+      }
+    },
+    "system_impact": {
+      "stage_1": {
+        "national_mw": 1000,
+        "ct_burden_mw": 150.0,
+        "morning_coverage_pct": 31.799999999999994,
+        "evening_coverage_pct": 53.794999999999995
+      },
+      "stage_2": {
+        "national_mw": 2000,
+        "ct_burden_mw": 300.0,
+        "morning_coverage_pct": 15.899999999999997,
+        "evening_coverage_pct": 26.897499999999997
+      },
+      "stage_3": {
+        "national_mw": 3000,
+        "ct_burden_mw": 450.0,
+        "morning_coverage_pct": 10.6,
+        "evening_coverage_pct": 17.931666666666665
+      },
+      "stage_4": {
+        "national_mw": 4000,
+        "ct_burden_mw": 600.0,
+        "morning_coverage_pct": 7.949999999999998,
+        "evening_coverage_pct": 13.448749999999999
+      },
+      "stage_5": {
+        "national_mw": 5000,
+        "ct_burden_mw": 750.0,
+        "morning_coverage_pct": 6.359999999999999,
+        "evening_coverage_pct": 10.758999999999999
+      },
+      "stage_6": {
+        "national_mw": 6000,
+        "ct_burden_mw": 900.0,
+        "morning_coverage_pct": 5.3,
+        "evening_coverage_pct": 8.965833333333332
+      },
+      "stage_7": {
+        "national_mw": 7000,
+        "ct_burden_mw": 1050.0,
+        "morning_coverage_pct": 4.542857142857142,
+        "evening_coverage_pct": 7.6850000000000005
+      },
+      "stage_8": {
+        "national_mw": 8000,
+        "ct_burden_mw": 1200.0,
+        "morning_coverage_pct": 3.974999999999999,
+        "evening_coverage_pct": 6.724374999999999
+      }
+    },
+    "temporal_overlap": {
+      "morning_cf": 0.3,
+      "evening_cf": 0.12499999999999999,
+      "peak_combined_cf": 0.19999999999999998,
+      "morning_hours": 3,
+      "evening_hours": 4
+    }
+  },
+  "2030": {
+    "der_capacity_mw": 576,
+    "effective_capacity": {
+      "without_storage": {
+        "morning": 172.79999999999998,
+        "evening": 71.99999999999999,
+        "peak_combined": 115.19999999999999
+      },
+      "with_storage": {
+        "morning": 172.79999999999998,
+        "evening": 292.32,
+        "peak_combined": 241.09714285714284
+      }
+    },
+    "household_resilience": {
+      "high": {
+        "total_households": 230966.27642032655,
+        "solar_households": 69289.88292609797,
+        "islanding_capable": 48502.91804826858,
+        "can_ride_stage4": 48502.91804826858,
+        "avg_battery_kWh": 10
+      },
+      "middle": {
+        "total_households": 230966.27642032655,
+        "solar_households": 57741.56910508164,
+        "islanding_capable": 23096.627642032658,
+        "can_ride_stage4": 23096.627642032658,
+        "avg_battery_kWh": 7
+      },
+      "low": {
+        "total_households": 230966.27642032655,
+        "solar_households": 34644.941463048985,
+        "islanding_capable": 3464.4941463048985,
+        "can_ride_stage4": 3464.4941463048985,
+        "avg_battery_kWh": 5
+      },
+      "summary": {
+        "total_households": 692898.8292609797,
+        "total_islanding_capable": 75064.03983660614,
+        "islanding_percentage": 10.833333333333336
+      }
+    },
+    "system_impact": {
+      "stage_1": {
+        "national_mw": 1000,
+        "ct_burden_mw": 150.0,
+        "morning_coverage_pct": 115.19999999999999,
+        "evening_coverage_pct": 194.88
+      },
+      "stage_2": {
+        "national_mw": 2000,
+        "ct_burden_mw": 300.0,
+        "morning_coverage_pct": 57.599999999999994,
+        "evening_coverage_pct": 97.44
+      },
+      "stage_3": {
+        "national_mw": 3000,
+        "ct_burden_mw": 450.0,
+        "morning_coverage_pct": 38.4,
+        "evening_coverage_pct": 64.96
+      },
+      "stage_4": {
+        "national_mw": 4000,
+        "ct_burden_mw": 600.0,
+        "morning_coverage_pct": 28.799999999999997,
+        "evening_coverage_pct": 48.72
+      },
+      "stage_5": {
+        "national_mw": 5000,
+        "ct_burden_mw": 750.0,
+        "morning_coverage_pct": 23.039999999999996,
+        "evening_coverage_pct": 38.976
+      },
+      "stage_6": {
+        "national_mw": 6000,
+        "ct_burden_mw": 900.0,
+        "morning_coverage_pct": 19.2,
+        "evening_coverage_pct": 32.48
+      },
+      "stage_7": {
+        "national_mw": 7000,
+        "ct_burden_mw": 1050.0,
+        "morning_coverage_pct": 16.457142857142856,
+        "evening_coverage_pct": 27.839999999999996
+      },
+      "stage_8": {
+        "national_mw": 8000,
+        "ct_burden_mw": 1200.0,
+        "morning_coverage_pct": 14.399999999999999,
+        "evening_coverage_pct": 24.36
+      }
+    },
+    "temporal_overlap": {
+      "morning_cf": 0.3,
+      "evening_cf": 0.12499999999999999,
+      "peak_combined_cf": 0.19999999999999998,
+      "morning_hours": 3,
+      "evening_hours": 4
+    }
+  },
+  "2040": {
+    "der_capacity_mw": 1010,
+    "effective_capacity": {
+      "without_storage": {
+        "morning": 303.0,
+        "evening": 126.24999999999999,
+        "peak_combined": 201.99999999999997
+      },
+      "with_storage": {
+        "morning": 303.0,
+        "evening": 512.5749999999999,
+        "peak_combined": 422.7571428571428
+      }
+    },
+    "household_resilience": {
+      "high": {
+        "total_households": 262810.68997451785,
+        "solar_households": 78843.20699235535,
+        "islanding_capable": 55190.24489464874,
+        "can_ride_stage4": 55190.24489464874,
+        "avg_battery_kWh": 10
+      },
+      "middle": {
+        "total_households": 262810.68997451785,
+        "solar_households": 65702.67249362946,
+        "islanding_capable": 26281.068997451788,
+        "can_ride_stage4": 26281.068997451788,
+        "avg_battery_kWh": 7
+      },
+      "low": {
+        "total_households": 262810.68997451785,
+        "solar_households": 39421.603496177675,
+        "islanding_capable": 3942.1603496177677,
+        "can_ride_stage4": 3942.1603496177677,
+        "avg_battery_kWh": 5
+      },
+      "summary": {
+        "total_households": 788432.0699235536,
+        "total_islanding_capable": 85413.4742417183,
+        "islanding_percentage": 10.833333333333332
+      }
+    },
+    "system_impact": {
+      "stage_1": {
+        "national_mw": 1000,
+        "ct_burden_mw": 150.0,
+        "morning_coverage_pct": 202.0,
+        "evening_coverage_pct": 341.71666666666664
+      },
+      "stage_2": {
+        "national_mw": 2000,
+        "ct_burden_mw": 300.0,
+        "morning_coverage_pct": 101.0,
+        "evening_coverage_pct": 170.85833333333332
+      },
+      "stage_3": {
+        "national_mw": 3000,
+        "ct_burden_mw": 450.0,
+        "morning_coverage_pct": 67.33333333333333,
+        "evening_coverage_pct": 113.90555555555555
+      },
+      "stage_4": {
+        "national_mw": 4000,
+        "ct_burden_mw": 600.0,
+        "morning_coverage_pct": 50.5,
+        "evening_coverage_pct": 85.42916666666666
+      },
+      "stage_5": {
+        "national_mw": 5000,
+        "ct_burden_mw": 750.0,
+        "morning_coverage_pct": 40.400000000000006,
+        "evening_coverage_pct": 68.34333333333332
+      },
+      "stage_6": {
+        "national_mw": 6000,
+        "ct_burden_mw": 900.0,
+        "morning_coverage_pct": 33.666666666666664,
+        "evening_coverage_pct": 56.952777777777776
+      },
+      "stage_7": {
+        "national_mw": 7000,
+        "ct_burden_mw": 1050.0,
+        "morning_coverage_pct": 28.857142857142858,
+        "evening_coverage_pct": 48.816666666666656
+      },
+      "stage_8": {
+        "national_mw": 8000,
+        "ct_burden_mw": 1200.0,
+        "morning_coverage_pct": 25.25,
+        "evening_coverage_pct": 42.71458333333333
+      }
+    },
+    "temporal_overlap": {
+      "morning_cf": 0.3,
+      "evening_cf": 0.12499999999999999,
+      "peak_combined_cf": 0.19999999999999998,
+      "morning_hours": 3,
+      "evening_hours": 4
+    }
+  },
+  "2050": {
+    "der_capacity_mw": 1286,
+    "effective_capacity": {
+      "without_storage": {
+        "morning": 385.8,
+        "evening": 160.74999999999997,
+        "peak_combined": 257.2
+      },
+      "with_storage": {
+        "morning": 385.8,
+        "evening": 652.645,
+        "peak_combined": 538.2828571428571
+      }
+    },
+    "household_resilience": {
+      "high": {
+        "total_households": 299045.6435258337,
+        "solar_households": 89713.6930577501,
+        "islanding_capable": 62799.58514042507,
+        "can_ride_stage4": 62799.58514042507,
+        "avg_battery_kWh": 10
+      },
+      "middle": {
+        "total_households": 299045.6435258337,
+        "solar_households": 74761.41088145842,
+        "islanding_capable": 29904.56435258337,
+        "can_ride_stage4": 29904.56435258337,
+        "avg_battery_kWh": 7
+      },
+      "low": {
+        "total_households": 299045.6435258337,
+        "solar_households": 44856.84652887505,
+        "islanding_capable": 4485.684652887506,
+        "can_ride_stage4": 4485.684652887506,
+        "avg_battery_kWh": 5
+      },
+      "summary": {
+        "total_households": 897136.9305775011,
+        "total_islanding_capable": 97189.83414589595,
+        "islanding_percentage": 10.833333333333334
+      }
+    },
+    "system_impact": {
+      "stage_1": {
+        "national_mw": 1000,
+        "ct_burden_mw": 150.0,
+        "morning_coverage_pct": 257.2,
+        "evening_coverage_pct": 435.09666666666664
+      },
+      "stage_2": {
+        "national_mw": 2000,
+        "ct_burden_mw": 300.0,
+        "morning_coverage_pct": 128.6,
+        "evening_coverage_pct": 217.54833333333332
+      },
+      "stage_3": {
+        "national_mw": 3000,
+        "ct_burden_mw": 450.0,
+        "morning_coverage_pct": 85.73333333333333,
+        "evening_coverage_pct": 145.03222222222223
+      },
+      "stage_4": {
+        "national_mw": 4000,
+        "ct_burden_mw": 600.0,
+        "morning_coverage_pct": 64.3,
+        "evening_coverage_pct": 108.77416666666666
+      },
+      "stage_5": {
+        "national_mw": 5000,
+        "ct_burden_mw": 750.0,
+        "morning_coverage_pct": 51.44,
+        "evening_coverage_pct": 87.01933333333332
+      },
+      "stage_6": {
+        "national_mw": 6000,
+        "ct_burden_mw": 900.0,
+        "morning_coverage_pct": 42.86666666666667,
+        "evening_coverage_pct": 72.51611111111112
+      },
+      "stage_7": {
+        "national_mw": 7000,
+        "ct_burden_mw": 1050.0,
+        "morning_coverage_pct": 36.74285714285715,
+        "evening_coverage_pct": 62.15666666666666
+      },
+      "stage_8": {
+        "national_mw": 8000,
+        "ct_burden_mw": 1200.0,
+        "morning_coverage_pct": 32.15,
+        "evening_coverage_pct": 54.38708333333333
+      }
+    },
+    "temporal_overlap": {
+      "morning_cf": 0.3,
+      "evening_cf": 0.12499999999999999,
+      "peak_combined_cf": 0.19999999999999998,
+      "morning_hours": 3,
+      "evening_hours": 4
+    }
+  }
+}
