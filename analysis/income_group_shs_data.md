@@ -1,7 +1,8 @@
 # Income Group Classification & SHS Adoption Data
 
-**Date:** March 16, 2026
+**Date:** March 16, 2026 (updated)
 **Purpose:** Empirical data inputs for Bass diffusion model, segmented by residential income group.
+**Version:** v2 — corrected SHS counts with full pipeline verification against Biz's data pipeline.
 
 ---
 
@@ -23,8 +24,9 @@ Residential households are classified into three income groups based on City of 
 ### Data Sources
 - **Tariff classification:** `trfname` field in `combined_02072026.parquet` (prepaid); `rate_category` in same file (postpaid)
 - **Household counts:** Sales Summaries `.xlsm` files, `SUMMATED SALES` sheet (Credit + Prepaid combined, annual average)
-- **SHS labels:** `shs_label_edit = 'PV_normal'` in `combined_02072026.parquet` (deep learning model detection from consumption curves)
-- **System sizes:** `Watt` field in the same parquet file
+- **SHS labels:** `shs_label_edit = 'PV_normal'` in `combined_02072026.parquet`. This is the **final output of Biz's pipeline** (step 5c), which includes: Mask2Former satellite image detection → building matching → cleaning assumptions (gap fill, forward extend) → SSEG registration merge → manual visual verification. See [Biz's repo](https://github.com/biz-yoder/EnergyTransitionDuringEnergyCrisisCapeTown) for full pipeline.
+- **System sizes:** `Watt` field in the same parquet file. Calculated as `shs_area_m2 * 400W / 1.7m²` (~235 W/m²), with fallback to SSEG-registered `total_capacity_va` when area is unavailable.
+- **Postpaid mapping:** For accounts with `trfname = NULL` (postpaid), `rate_category` is used: HOME/HOM/DOM variants → Mid; SPU/TOU/LPU/SSG(non-DOM) → High. No postpaid "Low" category exists.
 
 ---
 
@@ -97,21 +99,38 @@ Source: Sales Summaries `.xlsm`, `SUMMATED SALES` sheet. Values are 12-month ave
 
 Source: `combined_02072026.parquet`, `shs_label_edit = 'PV_normal'`, deduplicated by `contract_ID` per year.
 
-| Year | Low SHS | Mid SHS | High SHS | Total SHS |
-|---|---:|---:|---:|---:|
-| 2020 | — | 1,383 | 822 | 2,193 |
-| 2021 | 351 | 2,820 | 4,986 | 8,019 |
-| 2022 | 466 | 3,507 | 7,685 | 11,394 |
-| 2023 | 613 | 5,354 | 13,754 | 18,959 |
+### 4a. Full SHS Counts (All Accounts)
 
-### Adoption Rates
+| Year | Total SHS (all accounts) |
+|---|---:|
+| 2020 | 6,563 |
+| 2021 | 8,740 |
+| 2022 | 11,886 |
+| 2023 | 19,744 |
 
-| Year | Low Rate | Mid Rate | High Rate | Overall Rate |
-|---|---|---|---|---|
-| 2020 | — | 2.31% | 6.96% | — |
-| 2021 | 0.42% | 1.75% | 3.45% | — |
-| 2022 | 0.51% | 2.18% | 4.84% | — |
-| 2023 | 0.64% | 3.28% | 7.29% | — |
+### 4b. SHS by Income Group (Mapped Residential Only)
+
+| Year | Low | Mid | High | Mapped Residential | Unmapped Prepaid | Commercial |
+|---|---:|---:|---:|---:|---:|---:|
+| 2020 | 0 | 1,383 | 822 | 2,205 | 4,370 | — |
+| 2021 | 351 | 2,820 | 4,986 | 8,157 | 5,071 | 399 |
+| 2022 | 466 | 3,507 | 7,685 | 11,658 | 0 | 519 |
+| 2023 | 613 | 5,354 | 13,754 | 19,721 | 0 | 797 |
+
+**Data quality note:** In 2020, ALL prepaid accounts have `trfname = NULL`, so 4,370 SHS accounts (67% of total) cannot be assigned to an income group. In 2021, 5,071 prepaid SHS accounts (58%) remain unmapped. From 2022 onward, coverage is >98%.
+
+### 4c. Adoption Rates (2022-2023 only, reliable years)
+
+| Year | Low Rate | Mid Rate | High Rate |
+|---|---|---|---|
+| 2022 | 0.51% | 2.18% | 4.84% |
+| 2023 | 0.64% | 3.28% | 7.29% |
+
+### 4d. Recommendation for Bass Model
+
+- **Use 2022-2023 for income-group-level fitting** (clean data, >98% coverage).
+- **Use 2020-2023 total SHS counts** (Section 4a) for aggregate-level fitting if income group breakdown is not needed.
+- **Do not use 2020-2021 income-group breakdowns** for calibration — the unmapped prepaid accounts make these unreliable.
 
 ---
 
@@ -144,11 +163,23 @@ Credit residential is declining (~5%/year) but has not been fully converted to p
 
 ---
 
-## 7. Limitations
+## 7. Pipeline Verification
+
+The `combined_02072026.parquet` file has been verified as the **final output of Biz's data pipeline** (step 5c in [biz-yoder/EnergyTransitionDuringEnergyCrisisCapeTown](https://github.com/biz-yoder/EnergyTransitionDuringEnergyCrisisCapeTown)).
+
+Evidence: file contains all 5c-stage fields (`Did not build`, `Built; NOT found by M2F`, `Built; found by M2F`, `total_capacity_va`, `installation_type`, `fake`, `start_year`, `has_shs`), confirming it includes SSEG registration merge and manual visual verification corrections.
+
+SHS detection method: **Mask2Former** (satellite image semantic segmentation) detecting rooftop solar panels → spatial matching to Overture Maps building polygons → matching to electricity contract accounts → cleaning assumptions (single-year isolation removal, gap filling, forward extension to 2023) → SSEG registration cross-check with manual visual verification.
+
+---
+
+## 8. Limitations
 
 1. **Tariff as income proxy:** Tariff category is an indirect proxy for income. Within-group income variation may be large, especially for Domestic (Mid).
 2. **LifeLine eligibility gaps:** Some qualifying low-income households may not have applied for LifeLine tariff and are misclassified as Mid.
-3. **SHS detection accuracy:** The `shs_label_edit` field is generated by a deep learning model from consumption curves, not from installation records. False positives/negatives are possible.
-4. **Postpaid coverage gap:** Property values are only available for ~10% of residential accounts (postpaid). Direct wealth-based validation is limited to this subset.
-5. **Temporal alignment:** Sales Summary years are fiscal (July-June); parquet data years are calendar (Jan-Dec). Minor misalignment exists.
-6. **Pre-2018 incompatibility:** Tariff category definitions changed around 2017/18. Historical data before this period uses different classification criteria.
+3. **SHS detection accuracy:** The `shs_label_edit` field is generated by Mask2Former satellite image segmentation, not from installation records. The pipeline includes manual visual verification for SSEG-registered accounts, but unregistered accounts rely solely on model predictions. False positives/negatives are possible.
+4. **2020-2021 tariff data gap:** All prepaid accounts in 2020 and most in 2021 have `trfname = NULL`, preventing income group assignment. Income-group-level analysis is only reliable for 2022-2023.
+5. **Postpaid coverage gap:** Property values are only available for ~10% of residential accounts (postpaid). Direct wealth-based validation is limited to this subset.
+6. **Temporal alignment:** Sales Summary years are fiscal (July-June); parquet data years are calendar (Jan-Dec). Minor misalignment exists.
+7. **Pre-2018 incompatibility:** Tariff category definitions changed around 2017/18. Historical data before this period uses different classification criteria.
+8. **System size estimation:** `Watt` is derived from satellite-detected panel area (235 W/m²), not from inverter specifications or metered output. Actual capacity may differ.
