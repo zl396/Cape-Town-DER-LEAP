@@ -66,6 +66,7 @@ BASE_YEAR = 2022       # Reliable data starts 2022 (>98% tariff coverage)
 CALIBRATION_END = 2023
 PROJECTION_START = 2024
 PROJECTION_END = 2050
+LEAP_BASE_YEAR = 2018  # LEAP model starts here
 
 # Household counts (2022/23 fiscal year, Sales Summaries .xlsm)
 # Source: analysis/income_group_shs_data.md Section 3
@@ -176,6 +177,35 @@ LITERATURE_Q = {
 # - 'hybrid': fix q from literature, calibrate p from data (RECOMMENDED)
 # - 'default': use DEFAULT_PARAMS directly, no calibration
 CALIBRATION_MODE = 'hybrid'
+
+# Estimated 2018 adoption rates (smooth backfill anchors, same as BAU)
+# Derived from exponential interpolation to match 2022 data
+ADOPTION_2018 = {'high': 0.005, 'middle': 0.001, 'low': 0.0}
+
+
+# ============================================================================
+# SMOOTH BACKFILL: 2018-2022
+# ============================================================================
+
+def exponential_backfill(y_start, y_end, year_start, year_end):
+    """
+    Exponential interpolation from y_start (at year_start) to y_end (at year_end).
+    Returns dict {year: value} for each integer year in [year_start, year_end].
+    """
+    n = year_end - year_start
+    if n <= 0 or y_start <= 0:
+        result = {}
+        for y in range(year_start, year_end + 1):
+            t = (y - year_start) / n if n > 0 else 0
+            result[y] = y_start + (y_end - y_start) * t
+            result[y] = max(result[y], 0)
+        return result
+    ratio = y_end / y_start
+    result = {}
+    for y in range(year_start, year_end + 1):
+        t = y - year_start
+        result[y] = y_start * (ratio ** (t / n))
+    return result
 
 
 # ============================================================================
@@ -374,7 +404,7 @@ def calibrate_bass(historical_data, m, group_name='', mode=None):
 # ============================================================================
 
 def project_hh_counts(base_year_counts, growth_rate, start_year, end_year):
-    """Project household counts forward using CAGR."""
+    """Project household counts forward and backward using CAGR."""
     counts = {}
     base_year = max(base_year_counts.keys())
     base_count = base_year_counts[base_year]
@@ -382,6 +412,11 @@ def project_hh_counts(base_year_counts, growth_rate, start_year, end_year):
     # Include historical data
     for y, c in base_year_counts.items():
         counts[y] = c
+
+    # Project backward to LEAP_BASE_YEAR
+    for y in range(LEAP_BASE_YEAR, min(base_year_counts.keys())):
+        years_back = y - base_year  # negative
+        counts[y] = base_count * (1 + growth_rate) ** years_back
 
     # Project forward
     for y in range(base_year + 1, end_year + 1):
@@ -657,14 +692,23 @@ def main():
         'low': HISTORICAL_ADOPTION['low'][CALIBRATION_END],
     }
 
-    # Run projections
+    # Run projections with smooth 2018 backfill
     projections = {}
     for group in ['high', 'middle', 'low']:
+        # Start projection from 2023 so 2024 = first Bass step (not flat repeat)
         proj = run_projection(
             params[group]['p'], params[group]['q'], params[group]['m'],
-            Y0[group], PROJECTION_START, PROJECTION_END
+            Y0[group], PROJECTION_START, PROJECTION_END,
+            calibration_start=CALIBRATION_END
         )
-        # Prepend historical data
+        # Smooth backfill 2018-2022
+        backfill = exponential_backfill(
+            ADOPTION_2018[group],
+            HISTORICAL_ADOPTION[group][2022],
+            LEAP_BASE_YEAR, 2022
+        )
+        proj.update(backfill)
+        # Overwrite with historical calibration points
         for y, v in HISTORICAL_ADOPTION[group].items():
             proj[y] = v
         projections[group] = proj
@@ -724,6 +768,38 @@ def main():
     for group in ['high', 'middle', 'low']:
         print(f"{group:<12} {params[group]['p']:>10.6f} {params[group]['q']:>10.6f} "
               f"{params[group]['m']*100:>7.1f}% {Y0[group]*100:>9.4f}%")
+
+    # ---- Print LEAP Interp() expressions (2018-2050) ----
+    print("\n" + "=" * 70)
+    print("LEAP Interp() EXPRESSIONS — S3 SCENARIO (2018-2050)")
+    print("=" * 70)
+
+    milestone_years = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2035, 2040, 2045, 2050]
+
+    for group in ['high', 'middle', 'low']:
+        label = {'high': 'High-Income', 'middle': 'Mid-Income', 'low': 'Low-Income'}[group]
+        parts = []
+        for y in milestone_years:
+            rate = projections[group].get(y, 0) * 100
+            parts.append(f"{y}, {rate:.2f}")
+        interp = "Interp(" + ", ".join(parts) + ")"
+        print(f"\n  {label} → Grid and SHS:")
+        print(f"  {interp}")
+        print(f"  {label} → Grid Only: Remainder(100)")
+
+    # SSEG Supply side
+    print(f"\n  SSEG Total Capacity (MW):")
+    parts = []
+    for y in milestone_years:
+        total_cap = 0
+        for group in ['high', 'middle', 'low']:
+            adoption = projections[group].get(y, 0)
+            hh = hh_projected[group].get(y, 0)
+            cap = adoption * hh * AVG_SYSTEM_SIZE[group] / 1000
+            total_cap += cap
+        sseg = total_cap * COMMERCIAL_MULTIPLIER
+        parts.append(f"{y}, {sseg:.0f}")
+    print(f"  Interp({', '.join(parts)})")
 
     print("\n" + "=" * 70)
     print("DONE. Check output files in:", output_dir)
