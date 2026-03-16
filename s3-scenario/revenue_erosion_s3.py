@@ -82,11 +82,13 @@ HH_CONSUMPTION_KWH = {
 # Household growth rate (1.3% CAGR)
 HH_GROWTH_RATE = 0.013
 
-# Household counts (2023 baseline from Energy Modeling Team Report Table 7)
+# Household counts (2022/23 baseline, Sales Summaries .xlsm)
+# Income mapping: HomeUser=High, Domestic=Mid, LifeLine=Low
+# Source: analysis/income_group_shs_data.md Section 3
 HH_COUNTS_2023 = {
-    'high': 158743,
-    'middle': 168040,
-    'low': 306998,
+    'high': 309_402,     # HomeUser tariff
+    'middle': 150_534,   # Domestic tariff
+    'low': 172_697,      # LifeLine tariff
 }
 
 

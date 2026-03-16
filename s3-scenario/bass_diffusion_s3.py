@@ -1,27 +1,28 @@
 #!/usr/bin/env python3
 """
 Bass Diffusion Model for S3 Progressive Subsidy Scenario
-Cape Town DER-LEAP Project
+Cape Town DER-LEAP Project — Corrected Data (v3)
 
-Models SHS (Solar Home System) adoption in Cape Town using the Bass diffusion model,
-segmented by income group (high, middle, low) under a progressive subsidy policy.
+Models SHS adoption under progressive subsidy policy using corrected data from
+Biz's Mask2Former satellite detection pipeline (combined_02072026.parquet).
 
 Bass Model (discrete):
     y_t = (m - Y_{t-1}) * [p + q * (Y_{t-1} / m)]
     Y_t = Y_{t-1} + y_t
 
-Where:
-    m = market saturation (max fraction of households adopting)
-    p = innovation coefficient (external/policy influence)
-    q = imitation coefficient (peer effects)
-    Y_t = cumulative adoption fraction at time t
-    y_t = new adoption fraction in period t
+Data Source (v3 — corrected):
+    - Income groups: LifeLine=Low, Domestic=Mid, HomeUser=High (tariff-based)
+    - Adoption rates: Biz's pipeline, 2022-2023 only (>98% coverage)
+    - System sizes: Mean from Watt field (4.91/3.66/2.84 kW)
+    - Household counts: Sales Summaries .xlsm (2022/23)
+    - Calibration: 2022-2023 only (2020-21 excluded: 58-67% unmapped prepaid)
 
-Calibration Data Source:
-    Historical adoption rates from Yoder (2025) dissertation Ch. 3, Table 3.
-    Uses Mask2Former deep learning model on aerial imagery to detect SHS installations.
-    This is ~3x more accurate than SSEG registration data (~2/3 of SHS are unregistered).
-    Postpaid (credit metering) → High-Income; Prepaid (token metering) → Middle-Income.
+Changes from old model (v2):
+    - Income mapping: Postpaid=HI/Prepaid=MI → HomeUser=HI/Domestic=MI/LifeLine=LI
+    - HH counts: HI 158k→309k, MI 168k→150k, LI 307k→173k
+    - System sizes: 8/5/3 kW → 4.91/3.66/2.84 kW (mean)
+    - S3 saturation: 30/25/15% (unchanged from v2 design)
+    - BAU baseline: now 25/15/3% (was 30/20/0%)
 
 Usage:
     python3 bass_diffusion_s3.py
@@ -30,7 +31,6 @@ Output:
     - s3_bass_diffusion_results.csv
     - s3_adoption_curves.png
     - s3_sensitivity_analysis.png
-    - s3_revenue_erosion.png (from revenue_erosion_s3.py)
     - Console output with calibration results
 """
 
@@ -62,93 +62,82 @@ except ImportError:
 # ============================================================================
 
 # Projection period
-BASE_YEAR = 2020       # Yoder aerial imagery data starts 2020
+BASE_YEAR = 2022       # Reliable data starts 2022 (>98% tariff coverage)
 CALIBRATION_END = 2023
 PROJECTION_START = 2024
 PROJECTION_END = 2050
 
-# Household counts (from City of Cape Town data via LEAP model)
-# Source: Energy Modeling Team Final Report, Table 7
+# Household counts (2022/23 fiscal year, Sales Summaries .xlsm)
+# Source: analysis/income_group_shs_data.md Section 3
+# Income mapping: HomeUser=High, Domestic=Mid, LifeLine=Low
 HH_COUNTS = {
-    'high': {2018: 106087, 2019: 120728, 2020: 141869, 2021: 141709, 2022: 147109, 2023: 158743},
-    'middle': {2018: 120606, 2019: 134332, 2020: 152909, 2021: 152485, 2022: 157589, 2023: 168040},
-    'low': {2018: 355670, 2019: 340911, 2020: 310733, 2021: 303718, 2022: 304730, 2023: 306998},
+    'high': {2022: 309_402, 2023: 309_402},    # HomeUser tariff
+    'middle': {2022: 150_534, 2023: 150_534},   # Domestic tariff
+    'low': {2022: 172_697, 2023: 172_697},       # LifeLine tariff
 }
 
 # Household growth rate for projections (1.3% CAGR from IRP)
 HH_GROWTH_RATE = 0.013
 
-# Average SHS system size per income group (kW)
-AVG_SYSTEM_SIZE = {'high': 8, 'middle': 5, 'low': 3}
+# Average SHS system size per income group (kW) — MEAN from actual data
+# Source: analysis/income_group_shs_data.md Section 5
+# Derived from Watt field = shs_area_m2 * 400/1.7, fallback total_capacity_va
+AVG_SYSTEM_SIZE = {'high': 4.91, 'middle': 3.66, 'low': 2.84}
 
 # Total SSEG capacity (MW) - from LEAP model supply side (Table 16)
 TOTAL_SSEG_CAPACITY_MW = {2018: 19, 2019: 31, 2020: 50, 2021: 73, 2022: 99, 2023: 121}
 
+# Commercial SSEG multiplier (residential + ~25% commercial)
+COMMERCIAL_MULTIPLIER = 1.25
+
 # ============================================================================
 # HISTORICAL ADOPTION DATA
 # ============================================================================
-# Source: Yoder (2025) dissertation Ch. 3, Table 3.
-# "Inequality in Resilience: Understanding Household Electricity Consumption
-#  During Load Shedding in Cape Town"
-#
-# SHS detected via Mask2Former deep learning on aerial imagery (2020-2023).
-# This captures ALL installations, not just registered ones (~2/3 unregistered).
-#
-# Mapping: Postpaid (credit metering) → High-Income (HI)
-#          Prepaid (token metering) → Middle-Income (MI)  [user decision]
-#          Low-Income → 0% (no data; to be refined with Biz's consumption data)
-#
-# Previous estimates (registration-based) for comparison:
-#   HI 2023: 8.0% (old) vs 8.6% (Yoder) — close
-#   MI 2023: 0.18% (old) vs 4.0% (Yoder) — 20x discrepancy!
+# Source: Biz's Mask2Former pipeline (combined_02072026.parquet)
+# Income mapping: HomeUser=High, Domestic=Mid, LifeLine=Low (tariff-based)
+# Only 2022-2023 used for calibration (>98% tariff coverage)
+# 2020-2021 excluded: 58-67% prepaid accounts have trfname=NULL
+# See analysis/income_group_shs_data.md Section 4
 
 HISTORICAL_ADOPTION = {
     'high': {
-        2020: 0.031,    # Yoder Table 3: Postpaid 3.1% (2,193 HH)
-        2021: 0.041,    # Postpaid 4.1% (2,799 HH)
-        2022: 0.055,    # Postpaid 5.5% (3,528 HH)
-        2023: 0.086,    # Postpaid 8.6% (5,127 HH)
+        2022: 0.0484,   # 7,685 SHS / HomeUser accounts
+        2023: 0.0729,   # 13,754 SHS / HomeUser accounts
     },
     'middle': {
-        2020: 0.012,    # Yoder Table 3: Prepaid 1.2% (4,370 HH)
-        2021: 0.016,    # Prepaid 1.6% (5,941 HH)
-        2022: 0.024,    # Prepaid 2.4% (8,358 HH)
-        2023: 0.040,    # Prepaid 4.0% (14,617 HH)
+        2022: 0.0218,   # 3,507 SHS / Domestic accounts
+        2023: 0.0328,   # 5,354 SHS / Domestic accounts
     },
     'low': {
-        2020: 0.0,
-        2021: 0.0,
-        2022: 0.0,
-        2023: 0.0,
+        2022: 0.0051,   # 466 SHS / LifeLine accounts
+        2023: 0.0064,   # 613 SHS / LifeLine accounts
     },
 }
 
 # ============================================================================
 # S3 SCENARIO PARAMETERS - Progressive Subsidy
 # ============================================================================
-# Market saturation caps (m): conservative estimates per user specification
-# High-income: 30% (same as BAU, no additional incentive)
-# Middle-income: 25% (up from 20% BAU, moderate subsidy effect)
-# Low-income: 15% (up from 0% BAU, largest subsidy effect)
-
+# S3 market saturation caps (m): policy-enhanced ceilings
+# BAU baseline: High=25%, Mid=15%, Low=3%
+# S3 subsidy lifts: High unchanged, Mid +10pp, Low +12pp
 S3_PARAMS = {
     'high': {
-        'm': 0.30,      # 30% saturation
-        'p': None,       # To be calibrated
-        'q': None,       # To be calibrated
+        'm': 0.30,      # 30% saturation (BAU=25%, +5pp from organic growth)
+        'p': None,       # Calibrated from data
+        'q': None,       # From literature
         'Y0': None,      # From historical data (2023 value)
     },
     'middle': {
-        'm': 0.25,       # 25% saturation
-        'p': None,       # Derived from HI calibration (1.5x p_HI)
-        'q': None,       # Derived from HI calibration (0.8x q_HI)
+        'm': 0.25,       # 25% saturation (BAU=15%, moderate subsidy)
+        'p': None,       # Calibrated then multiplied (1.5x)
+        'q': None,       # From literature
         'Y0': None,      # From historical data
     },
     'low': {
-        'm': 0.15,       # 15% saturation
-        'p': None,       # Derived from HI calibration (2.5x p_HI)
-        'q': None,       # Derived from HI calibration (0.5x q_HI)
-        'Y0': None,      # 0%
+        'm': 0.15,       # 15% saturation (BAU=3%, largest subsidy)
+        'p': None,       # Calibrated then multiplied (2.5x)
+        'q': None,       # From literature
+        'Y0': None,      # From historical data (0.64% in 2023)
     },
 }
 
@@ -291,6 +280,20 @@ def calibrate_bass(historical_data, m, group_name='', mode=None):
         dp = DEFAULT_PARAMS.get(group_name, {'p': 0.01, 'q': 0.3})
         print(f"  [{group_name}] Using default: p={dp['p']:.6f}, q={dp['q']:.6f}")
         return dp['p'], dp['q'], None, None
+
+    # With only 2 data points, use direct algebraic calibration
+    if len(values) == 2:
+        q_fixed = LITERATURE_Q.get(group_name, 0.30)
+        Y0, Y1 = values[0], values[1]
+        y_new = Y1 - Y0
+        denom = m - Y0
+        if denom > 0:
+            p_calc = y_new / denom - q_fixed * Y0 / m
+            p_calc = max(p_calc, 0.001)
+        else:
+            p_calc = 0.001
+        print(f"  [{group_name}] 2-point calibrated: p={p_calc:.6f}, q={q_fixed:.6f} (fixed)")
+        return p_calc, q_fixed, None, None
 
     if not HAS_SCIPY or len(values) < 3:
         dp = DEFAULT_PARAMS.get(group_name, {'p': 0.01, 'q': 0.3})
