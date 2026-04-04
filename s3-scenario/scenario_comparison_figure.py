@@ -147,33 +147,38 @@ def plot_sseg_capacity(output_path):
 
 
 def plot_unmet_requirements(all_unmet, output_path):
-    """Figure 2: Unmet Electricity Requirements by Scenario."""
+    """Figure 2: Supply-Demand Balance by Scenario (flipped: positive=surplus, negative=deficit)."""
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    # Shading for deficit/surplus regions
+    # Zero line
     ax.axhline(y=0, color='black', linewidth=0.8, linestyle='-')
-    ax.axhspan(0, 2000, alpha=0.05, color='red')
-    ax.axhspan(-1200, 0, alpha=0.05, color='green')
 
-    for name in ['BAU', 'LMI', 'Pro-solar', 'Utility Protection']:
+    # Plot order: largest absolute values first so smaller fills stay visible
+    plot_order = ['Utility Protection', 'Pro-solar', 'BAU', 'LMI']
+
+    for name in plot_order:
         unmet = all_unmet[name]
-        ys = [unmet.get(y, 0) for y in YEARS]
+        # Flip sign: positive = surplus, negative = deficit (load shedding)
+        balance = [-unmet.get(y, 0) for y in YEARS]
         style = SCENARIO_STYLE[name]
-        ax.plot(YEARS, ys, color=style['color'], linewidth=2, label=style['label'])
+
+        # Fill between zero and the line
+        ax.fill_between(YEARS, 0, balance, alpha=0.15, color=style['color'])
+        ax.plot(YEARS, balance, color=style['color'], linewidth=2, label=style['label'])
 
     ax.set_xlabel('Year', fontsize=12)
-    ax.set_ylabel('Unmet Requirements (GWh)', fontsize=12)
-    ax.set_title('Projected Unmet Electricity Requirements by Scenario (2018–2050)', fontsize=14)
-    ax.legend(fontsize=11, loc='upper right')
+    ax.set_ylabel('Supply–Demand Balance (GWh)', fontsize=12)
+    ax.set_title('Projected Supply–Demand Balance by Scenario (2018–2050)', fontsize=14)
+    ax.legend(fontsize=11, loc='lower left')
     ax.set_xlim(2018, 2050)
     ax.grid(True, alpha=0.3)
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'{x:,.0f}'))
 
-    # Add deficit/surplus labels
-    ax.text(2049, 100, 'Deficit\n(Load Shedding)', fontsize=9, color='red',
-            ha='right', va='bottom', alpha=0.7)
-    ax.text(2049, -100, 'Surplus', fontsize=9, color='green',
-            ha='right', va='top', alpha=0.7)
+    # Region labels
+    ax.text(2019, 50, 'Surplus Generation', fontsize=10, color='green',
+            ha='left', va='bottom', alpha=0.7, fontweight='bold')
+    ax.text(2019, -50, 'Load Shedding', fontsize=10, color='red',
+            ha='left', va='top', alpha=0.7, fontweight='bold')
 
     fig.tight_layout()
     fig.savefig(output_path, dpi=200, bbox_inches='tight')
@@ -206,7 +211,7 @@ def main():
         print(f'  {name}: {len(data)} years loaded')
 
     plot_sseg_capacity(os.path.join(SCRIPT_DIR, 'scenario_sseg_capacity.png'))
-    plot_unmet_requirements(all_unmet, os.path.join(SCRIPT_DIR, 'scenario_unmet_requirements.png'))
+    plot_unmet_requirements(all_unmet, os.path.join(SCRIPT_DIR, 'scenario_supply_demand_balance.png'))
     write_csv(all_unmet, os.path.join(SCRIPT_DIR, 'unmet_requirements_comparison.csv'))
 
     # Print summary
