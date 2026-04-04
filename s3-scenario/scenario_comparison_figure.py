@@ -111,12 +111,25 @@ def extract_single_sheet_unmet(filename):
     return unmet
 
 
+# Pro-solar corrected Unmet Requirements (GWh) — LEAP export clipped surplus to 0;
+# these are the actual values provided from LEAP directly.
+PROSOLAR_UNMET_OVERRIDE = {
+    2018: 0, 2019: -3.24, 2020: -25.12, 2021: -38.59, 2022: -47.02,
+    2023: -59.60, 2024: 1732.32, 2025: 1284.23, 2026: 1405.42, 2027: 1418.85,
+    2028: 1185.28, 2029: 1172.93, 2030: 1492.31, 2031: 1426.50, 2032: 1098.30,
+    2033: 922.46, 2034: 652.05, 2035: 203.55, 2036: -118.42, 2037: -152.60,
+    2038: -191.51, 2039: -233.97, 2040: -278.25, 2041: -321.74, 2042: -362.70,
+    2043: -399.58, 2044: -431.65, 2045: -459.01, 2046: -482.04, 2047: -493.03,
+    2048: -502.64, 2049: -511.95, 2050: -521.48,
+}
+
+
 def load_all_unmet():
     """Load Unmet Requirements for all 4 scenarios."""
     return {
         'BAU': extract_bau_unmet(),
         'LMI': extract_single_sheet_unmet('LMI Energy Balance.xlsx'),
-        'Pro-solar': extract_single_sheet_unmet('Pro-solar Energy Balance.xlsx'),
+        'Pro-solar': PROSOLAR_UNMET_OVERRIDE,
         'Utility Protection': extract_single_sheet_unmet('Utility Protection Energy Balance.xlsx'),
     }
 
