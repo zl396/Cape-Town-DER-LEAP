@@ -182,15 +182,15 @@ def plot_unmet_requirements(all_unmet, output_path):
     ax.set_xlabel('Year', fontsize=12)
     ax.set_ylabel('Supply–Demand Balance (GWh)', fontsize=12)
     ax.set_title('Projected Supply–Demand Balance by Scenario (2018–2050)', fontsize=14)
-    ax.legend(fontsize=11, loc='lower left')
+    ax.legend(fontsize=11, loc='lower right')
     ax.set_xlim(2018, 2050)
     ax.grid(True, alpha=0.3)
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'{x:,.0f}'))
 
-    # Region labels
-    ax.text(2019, 50, 'Surplus Generation', fontsize=10, color='green',
+    # Region labels — position further from x-axis to avoid crowding
+    ax.text(2019, 200, 'Surplus Generation', fontsize=10, color='green',
             ha='left', va='bottom', alpha=0.7, fontweight='bold')
-    ax.text(2019, -50, 'Load Shedding', fontsize=10, color='red',
+    ax.text(2019, -200, 'Load Shedding', fontsize=10, color='red',
             ha='left', va='top', alpha=0.7, fontweight='bold')
 
     fig.tight_layout()
