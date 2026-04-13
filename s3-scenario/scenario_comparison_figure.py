@@ -22,10 +22,10 @@ YEARS = list(range(2018, 2051))
 # Color scheme (consistent across both figures)
 # ============================================================
 SCENARIO_STYLE = {
-    'BAU':                 {'color': '#888888', 'label': 'BAU'},
-    'LMI':                 {'color': '#2166AC', 'label': 'Updated LMI GHS'},
-    'Pro-solar':           {'color': '#1B7837', 'label': 'Pro-solar'},
-    'Utility Protection':  {'color': '#B2182B', 'label': 'Utility Protection'},
+    'BAU':                 {'color': '#666666', 'label': 'BAU'},
+    'LMI':                 {'color': '#2A9D8F', 'label': 'LMI Subsidy'},
+    'Pro-solar':           {'color': '#E9C46A', 'label': 'Pro-Solar'},
+    'Utility Protection':  {'color': '#E76F51', 'label': 'Utility Protection'},
 }
 
 # ============================================================
