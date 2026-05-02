@@ -46,7 +46,18 @@ model/            ← .leap file + scenario assumption inputs
 references/       ← PDFs and DOCX (papers, dissertations, reports)
 analysis/         ← Earlier analysis outputs (DER load shedding study)
 ai-agent-engineering/  ← AI methodology docs
-s3-scenario/      ← Main analysis scripts + figures + CSVs
+scenarios/        ← All scenario analytical work, organized by purpose:
+  README.md         (layout map)
+  WORK_LOG.md       (session history)
+  comparison/       (canonical 4-scenario figures + script)
+    archive/        (v1 figures from before May 1 fix)
+  bass-diffusion/   (per-scenario adoption modeling)
+  revenue/          (utility revenue-erosion analysis)
+  unmet/            (unmet-requirements deep-dive)
+  diagnostics/      (debug tools from May 1 investigation)
+  docs/             (LEAP implementation guides + methodology)
+  inputs/           (S3_scenario_assumptions.xlsx)
+  tools/            (generate_excel.py)
 ```
 
 ## Canonical Data Files
@@ -72,23 +83,25 @@ All v3 files exported May 1 after Eskom IPP capacity was restored (see Known Iss
 
 ## Key Scripts
 
-All in `s3-scenario/`:
+| Script | Path | Purpose |
+|---|---|---|
+| **`scenario_comparison_v3.py`** | `scenarios/comparison/` | **Main canonical output** — generates SSEG capacity figure, supply-demand balance figure, energy balance 3-panel, and CSV (reads from `data/current/`) |
+| `bass_diffusion_bau.py` | `scenarios/bass-diffusion/` | BAU Bass diffusion adoption model |
+| `bass_diffusion_s3.py` | `scenarios/bass-diffusion/` | Multi-scenario Bass diffusion model |
+| `revenue_erosion_s3.py` | `scenarios/revenue/` | Revenue impact analysis |
+| `unmet_requirements_analysis.py` | `scenarios/unmet/` | Unmet requirements deep-dive (note: paths still reference pre-reorg data locations — fix if rerunning) |
+| `generate_excel.py` | `scenarios/tools/` | Generate Excel exports |
+| `imports_diagnostic_comparison.py` | `scenarios/diagnostics/` | May 1 debug tool: cross-scenario Imports trend (note: stale paths) |
+| `ipp_settings_diff.py` | `scenarios/diagnostics/` | May 1 debug tool: scan IPP settings across all 9 scenarios (note: stale paths) |
 
-| Script | Purpose |
-|---|---|
-| `scenario_comparison_figure.py` | **Main output script** — generates SSEG capacity figure, supply-demand balance figure, and CSV comparison for all 4 scenarios |
-| `bass_diffusion_bau.py` | BAU Bass diffusion adoption model |
-| `bass_diffusion_s3.py` | Multi-scenario Bass diffusion model |
-| `revenue_erosion_s3.py` | Revenue impact analysis |
-| `generate_excel.py` | Generate Excel exports |
-| `unmet_requirements_analysis.py` | Unmet requirements deep-dive |
+`scenarios/comparison/archive/scenario_comparison_figure.py` is the v1 script kept for historical reference. Don't run it — it reads from `data/archive/` paths that no longer match repo root.
 
 ### Running the Main Script
 ```bash
 pip install openpyxl matplotlib
-python s3-scenario/scenario_comparison_figure.py
+python scenarios/comparison/scenario_comparison_v3.py
 ```
-Outputs: `scenario_sseg_capacity.png`, `scenario_supply_demand_balance.png`, `unmet_requirements_comparison.csv`
+Outputs (in `scenarios/comparison/`): `scenario_sseg_capacity_v3.png`, `scenario_supply_demand_balance_v3.png`, `scenario_energy_balance_v3.png`, `scenario_comparison_v3.csv`
 
 ## Resolved Issue: "Imports stuck at 5874 GWh" (May 1, fixed)
 

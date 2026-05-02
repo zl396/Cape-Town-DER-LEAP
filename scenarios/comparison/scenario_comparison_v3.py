@@ -21,7 +21,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_DIR = os.path.dirname(SCRIPT_DIR)
+# scenarios/comparison/ → up 2 levels to repo root
+REPO_DIR = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 YEARS = list(range(2018, 2051))
 
 SCENARIO_STYLE = {
@@ -31,7 +32,7 @@ SCENARIO_STYLE = {
     'Utility Protection': {'color': '#E76F51', 'label': 'Utility Protection'},
 }
 
-DATA_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), 'data', 'current')
+DATA_DIR = os.path.join(REPO_DIR, 'data', 'current')
 SCENARIO_FILES = {
     'BAU':                ('BAU EB v3.xlsx',       'Energy Balance'),
     'LMI':                ('LMI EB v3.xlsx',       None),
