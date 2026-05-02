@@ -150,3 +150,78 @@ a79aaea Update supply-demand balance figure with corrected Energy Balance data
 13ec98a Update SSEG capacity data with corrected Pro-solar and Utility Protection values
 d605d34 Add files via upload
 ```
+
+---
+
+## 2026-05-01 — Session: Eskom IPP Capacity Bug Diagnosis + Repo Reorganization
+
+### Workspace Setup (one-time)
+
+Local workspace `C:\Users\lxlms\OneDrive\Desktop\Cape-Town-DER-LEAP` newly cloned. Toolchain installed:
+- Python 3.12.10 + openpyxl/matplotlib/pandas/numpy
+- Node.js 24.15 + npm 11.12 + Claude Code CLI 2.1.126
+- gh CLI 2.92.0 (portable install, authed as zl396, scopes: gist/read:org/repo)
+- AAE framework installed globally to `~/.claude/` (CLAUDE.md + PRINCIPLE_LEARNINGS + skill)
+
+### Investigation Arc — "Imports stuck at 5874 GWh"
+
+**Round 1 (false hypothesis: stale exports)**. Original suspicion: `Updated Pro Solar.xlsx` and `Updated UT.xlsx` were exported before LEAP recalculation, so values were cached. User asked to recalculate + re-export → result identical (Imports still 5874). Hypothesis falsified.
+
+**Round 2 (false hypothesis: dispatch rule misconfigured)**. CLAUDE.md noted Dispatch Rule = 4 with Cape Town IPP Solar/Wind Historical Production = 0 as suspected cause. Verified via `Full Scenario Excel LEAP.xlsx`: all IPP settings IDENTICAL across the 4 Updated scenarios, so the rule alone couldn't explain why BAU/LMI worked and Pro-solar/UP didn't. Hypothesis falsified.
+
+**Round 3 (true cause)**. Expanded comparison to ALL 9 scenarios in `Full Scenario Excel LEAP.xlsx` (BAU, CCTREE, CIRP, LMIHI, Current Accounts, Updated BAU GHS, Updated LMI GHS, Updated Pro Solar, Updated Utility Protection). Found decisive divergence in **Eskom IPP Exogenous Capacity**:
+
+| Process | 2050 in BAU/CCTREE/LMIHI/CIRP | 2050 in 4 Updated scenarios | Δ |
+|---|---|---|---|
+| Eskom Wind | 1,474 MW | **3 MW** | -1,471 |
+| Eskom IPP Solar | 778 MW | **93 MW** | -685 |
+| Eskom IPP OCGT | 166 MW | **32 MW** | -134 |
+
+The 4 "Updated" scenarios had Eskom national-grid IPP capacity slashed to almost zero. Cape Town IPP Solar (200 MW) and Wind (600 MW) were unchanged.
+
+**Why timeline gave the false BAU/LMI baseline**: BAU/LMI Energy Balance files in repo (`Book7-9.xlsx`, `LMI Energy Balance.xlsx`) were exported Apr 3 — BEFORE the Eskom capacity reduction. Pro-solar/UP files (`Updated Pro Solar.xlsx`, `Updated UT.xlsx`) were Apr 13 — AFTER reduction. Apples-to-oranges comparison created the illusion that Pro-solar/UP were uniquely broken.
+
+**Verification**: User re-exported Updated BAU GHS at 19:29 May 1 with the Apr 13 model state → Imports also stuck at 5874 (confirmed). User restored Eskom IPP capacities in LEAP at 19:34 → BAU re-export showed dynamic Imports declining 8,867 → 1,246. User then re-exported all 4 scenarios at 22:47-22:48 → all 4 show consistent dynamic decline.
+
+### v3 Outputs (canonical)
+
+`data/current/`:
+- `BAU EB v3.xlsx` (multi-sheet; sheet 1 has UP contamination, sheet `'Energy Balance'` is true BAU)
+- `LMI EB v3.xlsx`, `Pro Solar EB v3.xlsx`, `UP EB v3.xlsx` (all single sheet, headers verified)
+
+`s3-scenario/scenario_comparison_v3.py` reads from `data/current/`. Outputs:
+- `scenario_sseg_capacity_v3.png`
+- `scenario_energy_balance_v3.png` (3-panel diagnostic: Production / Imports / Unmet)
+- `scenario_supply_demand_balance_v3.png` (single-panel publication style with shaded fills)
+- `scenario_comparison_v3.csv` (long-format dump)
+
+### v3 Summary (2050)
+
+| Scenario | SSEG (MW) | Production (GWh) | Imports (GWh) | Unmet (GWh) |
+|---|---|---|---|---|
+| BAU | 845 | 8,771 | 1,246 | -485 (surplus) |
+| LMI Subsidy | 1,182 | 9,349 | 1,210 | -997 (surplus) |
+| Pro-Solar | 1,207 | 9,392 | 1,222 | -1,045 (surplus) |
+| Utility Protection | 359 | 8,223 | 1,260 | 0 (balanced) |
+
+All 4 Imports curves now decline 8,867 → ~1,200 GWh as DER ramps up. Surplus ordering matches SSEG ordering.
+
+### Repo Reorganization
+
+Root reduced from 32 entries to 8 (2 docs + 6 dirs). New layout:
+- `data/current/` — v3 EB files (4)
+- `data/leap-export/` — Full Scenario Excel + 2 other model snapshots
+- `data/archive/` — 13 stale EB files preserved for traceability
+- `model/`, `references/`, `analysis/`, `ai-agent-engineering/`, `s3-scenario/` — kept
+- Removed duplicate `Yoder_dissertation_ch3.pdf` from root (still in `references/`)
+
+### Outstanding Issues
+
+1. **UP Unmet = exactly 0 from 2036+**: Suspected LEAP constraint (Maximum Imports / Minimum Production) enforcing balance. Sanity-check before citing.
+2. **Unmet panel zigzag 2027-2032**: Bass diffusion S-curve creates step-function inflections. May want smoothing for publication figures.
+3. **Pro-Solar vs LMI nearly indistinguishable post-2035**: Both saturate near 1,200 MW SSEG. If paper wants to differentiate these two scenarios, need a different metric (cumulative deficit avoided, consumer cost, co-benefits).
+
+### Methodology Notes
+
+- AAE framework activated mid-session. Used principles P-9 (review is bottleneck), P-10 (empirical over theoretical), R-1 (escalate on block), L1 (defer schema until landscape complete), L8 (preserve sources before deletion), L11 (clean rebuild from approved data).
+- Diagnostic insight worth promoting: "When comparing N entities, expand the landscape before locking in pairwise comparison" (L1 corollary). The 5874 bug was invisible while comparing only 4 Updated scenarios; only visible when comparing against the 5 non-Updated ones.

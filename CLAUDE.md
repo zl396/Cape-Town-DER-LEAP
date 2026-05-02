@@ -35,22 +35,40 @@ Production (SSEG) + Imports (centralized grid) = Demand + T&D Losses + Unmet Req
 - Positive Unmet = deficit (load shedding)
 - Negative Unmet = surplus generation
 
-## Data Files
+## Repo Structure
 
-### Energy Balance Excel Files (exported from LEAP)
-| File | Scenario | Format |
+```
+data/
+  current/        ← 4 v3 EB files (May 1) — analysis reads from here
+  leap-export/    ← Full Scenario Excel + other model snapshots
+  archive/        ← Stale EB exports (kept for traceability)
+model/            ← .leap file + scenario assumption inputs
+references/       ← PDFs and DOCX (papers, dissertations, reports)
+analysis/         ← Earlier analysis outputs (DER load shedding study)
+ai-agent-engineering/  ← AI methodology docs
+s3-scenario/      ← Main analysis scripts + figures + CSVs
+```
+
+## Canonical Data Files
+
+### Current Energy Balance exports (use these — `data/current/`)
+| File | Scenario | Notes |
 |---|---|---|
-| `Book7.xlsx`, `Book8.xlsx`, `Book9.xlsx` | BAU | Multi-sheet (one sheet per year, tab named `...\|YYYY`) |
-| `LMI Energy Balance.xlsx` | LMI | Single-sheet (years as columns, Unmet Requirements in row 17) |
-| `Updated Pro Solar.xlsx` | Pro-Solar | Single-sheet (same format as LMI) |
-| `Updated UT.xlsx` | Utility Protection | Single-sheet (same format as LMI) |
+| `BAU EB v3.xlsx` | Updated BAU GHS | Multi-sheet — explicitly read sheet `'Energy Balance'` (sheet 0 has UP contamination) |
+| `LMI EB v3.xlsx` | Updated LMI GHS | Single sheet |
+| `Pro Solar EB v3.xlsx` | Updated Pro Solar | Single sheet |
+| `UP EB v3.xlsx` | Updated Utility Protection | Single sheet |
 
-### Other Data Files
+All v3 files exported May 1 after Eskom IPP capacity was restored (see Known Issue below). Format: rows = Production / Imports / Exports / Total Primary Supply / Electricity Generation / T&D / DG / Transformation / Households / LPUs / SPUs / Municipality / Total Demand / **Unmet Requirements** (row 17). Cols 2-34 = years 2018-2050.
+
+### LEAP model snapshots (`data/leap-export/`)
 | File | Description |
 |---|---|
-| `Full Scenario Excel LEAP.xlsx` | Complete LEAP scenario export with all settings (5331 rows × 55 cols) |
+| `Full Scenario Excel LEAP.xlsx` | Complete LEAP scenario export with all settings (5331 rows × 55 cols, all 9 scenarios × all variables) |
 | `LEAP Scenario Updated BAU.xlsx` | BAU scenario parameters |
-| `S3_scenario_assumptions.xlsx` | Scenario assumption inputs |
+
+### Stale exports (`data/archive/`)
+- `Book5-9.xlsx`, `LMI Energy Balance.xlsx`, `Pro-solar Energy Balance.xlsx`, `Updated Pro Solar.xlsx`, `Updated UT.xlsx`, etc. — superseded by v3. Kept so prior commits remain reproducible.
 
 ## Key Scripts
 
@@ -72,11 +90,29 @@ python s3-scenario/scenario_comparison_figure.py
 ```
 Outputs: `scenario_sseg_capacity.png`, `scenario_supply_demand_balance.png`, `unmet_requirements_comparison.csv`
 
-## Known Issue: Fixed Imports in Pro-solar/UP
+## Resolved Issue: "Imports stuck at 5874 GWh" (May 1, fixed)
 
-BAU and LMI show dynamic (decreasing) centralized imports as SSEG grows, but Pro-solar and Utility Protection have imports **fixed at 5874 GWh**. Root cause: Dispatch Rule=4 dispatches by historical share, and Cape Town IPP Solar/Wind have Historical Production=0, so they never dispatch despite growing capacity. Additionally, DG Surplus Rule=2 sends surplus to the Solar feedstock resource, not the grid — so only the demand-side Grid/SHS household split affects centralized generation requirements.
+**Symptom (Apr 13 → May 1 19:22)**: Pro-solar and UP Energy Balance exports showed Imports plateau at exactly 5874 GWh from 2024 onward, while older BAU/LMI Apr 3 exports showed dynamic decline.
 
-**Fix**: In LEAP GUI, change Cape Town IPP Solar/Wind to a capacity-based dispatch rule, or seed their Historical Production with a non-zero value. Then recalculate all scenarios.
+**False hypotheses (ruled out)**:
+- Stale exports — re-running Calculate produced the same 5874 cap
+- Dispatch Rule = 4 with Historical Production = 0 — verified IPP settings were identical across all 4 Updated scenarios
+
+**True root cause** (found by comparing all 9 scenarios in `Full Scenario Excel LEAP.xlsx`): The 4 Updated scenarios (uBAU, uLMI, uPS, uUP) had **Eskom IPP Exogenous Capacity slashed** vs the original BAU/LMIHI scenarios:
+
+| Process | Updated 2050 (broken) | BAU 2050 (correct) |
+|---|---|---|
+| Eskom Wind | **3 MW** | 1,474 MW |
+| Eskom IPP Solar | 93 MW | 778 MW |
+| Eskom IPP OCGT | 32 MW | 166 MW |
+
+The Apr 3 BAU/LMI exports came from BEFORE this reduction → looked normal. Apr 13 Pro-solar/UP came AFTER → 5874 GWh was the residual gap that imports had to fill.
+
+**Fix applied** (May 1 19:34): User restored Eskom IPP Exogenous Capacity in LEAP. All 4 Updated scenarios re-exported (`data/current/*.xlsx`). 2050 Imports now ranges 1,210-1,260 GWh across scenarios (dynamic decline from 8,867).
+
+## Outstanding Issue: UP "exact 0 Unmet" from 2036+
+
+Utility Protection scenario shows Unmet Requirements = exactly 0 from 2036 to 2050. Suspected LEAP constraint (Maximum Imports cap or Minimum Production floor) enforcing balance rather than physical equilibrium. Sanity-check before citing.
 
 ## Color Theme
 - BAU: Gray `#666666`
